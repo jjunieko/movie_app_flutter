@@ -1,85 +1,53 @@
-import 'package:http/http.dart' as http;
-import 'package:myapp/data/models/models.dart';
-import 'package:myapp/data/models/movie_detail_model.dart';
 import 'dart:convert';
-import '../../core/config.dart'; // Importe o arquivo de configuração
+import 'package:http/http.dart' as http;
+import 'package:myapp/models/movie.dart';
+import 'package:myapp/models/season.dart';
 
-import '../models/season_model.dart';
-import '../models/source_model.dart';
+class ApiService {
+  static const String apiKey = 'KzURaVD6Vs9xgHnyzYWVfSt7aksxafIhYZaYMNJC';
+  static const String baseUrl = 'https://api.watchmode.com/v1';
 
-class MovieRepository {
-  final http.Client client;
-
-  MovieRepository({required this.client});
-
-  Future<List<MovieModel>> fetchMovies(String query) async {
-    final response = await client.get(
-      Uri.parse(
-          'https://api.watchmode.com/v1/search/?apiKey=$apiKey&search_field=name&search_value=$query'),
-    );
-
+  Future<List<Movie>> searchMovies(String query) async {
+    final response = await http.get(Uri.parse(
+        '$baseUrl/search/?apiKey=$apiKey&search_field=name&search_value=$query'));
     if (response.statusCode == 200) {
-      final List<dynamic> moviesJson =
-          json.decode(response.body)['title_results'];
-      return moviesJson.map((json) => MovieModel.fromJson(json)).toList();
+      final List<dynamic> results =
+          json.decode(response.body)['title_results'] ?? [];
+      return results.map((movie) => Movie.fromJson(movie)).toList();
     } else {
-      throw Exception('Failed to fetch movies');
+      throw Exception('Failed to load movies');
     }
   }
 
-  Future<List<MovieModel>> fetchPopularMovies() async {
-    final response = await client.get(
-      Uri.parse(
-          'https://api.watchmode.com/v1/list-titles/?apiKey=$apiKey&types=movie&sort_by=popularity_desc'),
-    );
-
+  Future<List<Movie>> fetchPopularMovies() async {
+    final response =
+        await http.get(Uri.parse('$baseUrl/title/popular/?apiKey=$apiKey'));
     if (response.statusCode == 200) {
-      final List<dynamic> moviesJson = json.decode(response.body)['titles'];
-      return moviesJson.map((json) => MovieModel.fromJson(json)).toList();
+      final List<dynamic> results = json.decode(response.body)['results'] ?? [];
+      return results.map((movie) => Movie.fromJson(movie)).toList();
     } else {
-      throw Exception('Failed to fetch popular movies');
+      throw Exception('Failed to load popular movies');
     }
   }
 
-  Future<MovieDetailModel> fetchMovieDetails(int id) async {
-    final response = await client.get(
-      Uri.parse(
-          'https://api.watchmode.com/v1/title/$id/details/?apiKey=$apiKey&append_to_response=sources'),
-    );
-
+  Future<Movie> getMovieDetails(int id) async {
+    final response = await http.get(Uri.parse(
+        '$baseUrl/title/$id/details/?apiKey=$apiKey&append_to_response=sources'));
     if (response.statusCode == 200) {
-      final movieJson = json.decode(response.body);
-      return MovieDetailModel.fromJson(movieJson);
+      return Movie.fromJson(json.decode(response.body));
     } else {
-      throw Exception('Failed to fetch movie details');
+      throw Exception('Failed to load movie details');
     }
   }
 
-  Future<List<SeasonModel>> fetchSeasons(int id) async {
-    final response = await client.get(
-      Uri.parse(
-          'https://api.watchmode.com/v1/title/345534/seasons/?apiKey=$apiKey'),
-    );
-
+  Future<List<Season>> getSeasons(int id) async {
+    final response =
+        await http.get(Uri.parse('$baseUrl/title/$id/seasons/?apiKey=$apiKey'));
     if (response.statusCode == 200) {
-      final List<dynamic> seasonsJson = json.decode(response.body);
-      return seasonsJson.map((json) => SeasonModel.fromJson(json)).toList();
+      final List<dynamic> results = json.decode(response.body);
+      return results.map((season) => Season.fromJson(season)).toList();
     } else {
-      throw Exception('Failed to fetch seasons');
-    }
-  }
-
-  Future<List<SourceModel>> fetchSources(int id) async {
-    final response = await client.get(
-      Uri.parse(
-          'https://api.watchmode.com/v1/title/345534/sources/?apiKey=$apiKey'),
-    );
-
-    if (response.statusCode == 200) {
-      final List<dynamic> sourcesJson = json.decode(response.body);
-      return sourcesJson.map((json) => SourceModel.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to fetch sources');
+      throw Exception('Failed to load seasons');
     }
   }
 }
